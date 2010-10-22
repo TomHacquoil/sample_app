@@ -42,4 +42,12 @@ describe User do
 		end
 	end
 
+	it "should not allow duplicate email addresses (case insensitive)" do
+		# Put a user with given attributes into the database
+		upcased_email = @attr[:email].upcase		
+		User.create!(@attr.merge(:email => upcased_email))
+		user_with_duplicate_email = User.new(@attr)
+		user_with_duplicate_email.should_not be_valid	
+	end
+
 end

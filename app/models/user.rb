@@ -1,13 +1,15 @@
 # == Schema Information
-# Schema version: 20101018143310
+# Schema version: 20101023131757
 #
 # Table name: users
 #
-#  id         :integer         not null, primary key
-#  name       :string(255)
-#  email      :string(255)
-#  created_at :datetime
-#  updated_at :datetime
+#  id                 :integer         not null, primary key
+#  name               :string(255)
+#  email              :string(255)
+#  created_at         :datetime
+#  updated_at         :datetime
+#  encrypted_password :string(255)
+#  salt               :string(255)
 #
 
 class User < ActiveRecord::Base
@@ -27,5 +29,40 @@ class User < ActiveRecord::Base
 												:confirmation => true,
 												:length => { :within => 6..40 }  	
 
+	before_save :encrypt_password
+	
+	# Return true if the user's password matches the submitted password
+	def has_password?(submitted_password)
+		encrypted_password == encrypt(submitted_password)
+	end
+
+	def self.authenticate(email, submitted_password)
+		user = find_by_email(email)
+		return nil if user.nil?
+		return user if user.has_password?(submitted_password)
+	end	
+
+	private
+	
+		# Create a secure hash using SHA2 Hex encryption
+		def secure_hash(string)
+			Digest::SHA2.hexdigest(string)
+		end
+
+		# Create the salt by combining the current timestamp and the password
+		def make_salt
+			secure_hash("#{Time.now.utc}--#{password}")
+		end
+
+		# Encrypt the string by combining the created salt and the password
+		def encrypt(string)
+			secure_hash("#{salt}--#{password}")	
+		end
+	
+		# If its a new record, create a salt
+		def encrypt_password
+			self.salt = make_salt if new_record?		
+			self.encrypted_password = encrypt(password)
+		end	
 
 end
